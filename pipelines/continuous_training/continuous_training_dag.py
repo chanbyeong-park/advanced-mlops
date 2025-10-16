@@ -41,7 +41,7 @@ with DAG(
     catchup=False,
     tags=set(["lgcns", "mlops"]),
 ) as dag:
-    # TODO: 코드 작성
+    # 코드 작성
     # 아래 Task를 적절한 Operator를 사용하여 구현
 
     data_extract = SQLExecuteQueryOperator(
@@ -64,6 +64,17 @@ with DAG(
         retries=1,
     )
 
-    training = EmptyOperator(task_id="model_training")
+    training = BashOperator(
+        task_id="model_training",
+        bash_command=f"cd {airflow_dags_path}/pipelines/continuous_training/docker &&"
+        "docker compose up --build && docker compose down",
+        env={
+            "PYTHON_FILE": "/home/codespace/training/trainer.py",
+            "MODEL_NAME": "credit_score_classification",
+            "BASE_DT": kst_ds_template,
+        },
+        append_env=True,
+        retries=1,
+    )
 
     data_extract >> data_preprocessing >> training
